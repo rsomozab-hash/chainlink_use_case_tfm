@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
-import "@chainlink/contracts/src/v0.8/vrf/VRFV2PlusConsumerBase.sol";
+import "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
+import "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
-contract VRFDirectFunding is VRFV2PlusConsumerBase {
+contract VRFDirectFunding is VRFConsumerBaseV2Plus {
     /*//////////////////////////////////////////////////////////////
                               VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -15,7 +16,7 @@ contract VRFDirectFunding is VRFV2PlusConsumerBase {
 
     // VRF Coordinator (Sepolia)
     address private constant COORDINATOR =
-        0xAadC36B74638F144ef5b7F30D1D9420d0aB81CBa;
+        0xaadc36B74638f144Ef5b7F30d1D9420d0aB81cbA;
 
     // Gas Lane / KeyHash
     bytes32 public constant KEYHASH =
@@ -31,7 +32,7 @@ contract VRFDirectFunding is VRFV2PlusConsumerBase {
                            CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor() VRFV2PlusConsumerBase(COORDINATOR) {}
+    constructor() VRFConsumerBaseV2Plus(COORDINATOR) {}
 
     /*//////////////////////////////////////////////////////////////
                        REQUEST RANDOM WORDS
