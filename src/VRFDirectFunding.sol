@@ -16,18 +16,19 @@ contract VRFDirectFunding is VRFConsumerBaseV2Plus {
 
     // VRF Coordinator (Sepolia)
     address private constant COORDINATOR =
-        0xaadc36B74638f144Ef5b7F30d1D9420d0aB81cbA;
+        0x78ea207D5f7dAB6E369C28f715620aa21e9B0A6C;
 
     // Gas Lane / KeyHash
     bytes32 public constant KEYHASH =
-        0x1153181c3f1cf7f2298b1ba58836df7f8d6009de0fe46156f0bb141c924c6de0;
+        0x040f2f15bb782baf0b153760205b2eb8e94c646f0d0b3e3fed7b1928b09e7c14;
 
     // Último número aleatorio generado
     uint256 public randomResult;
 
     // Último request ID
     uint256 public lastRequestId;
-
+    event RandomRequested(uint256 requestId);
+    event Debug(uint256 allowance, string note);
     /*//////////////////////////////////////////////////////////////
                            CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -49,9 +50,12 @@ contract VRFDirectFunding is VRFConsumerBaseV2Plus {
                 VRFV2PlusClient.ExtraArgsV1({nativePayment: false}) // Direct funding usa LINK
             )
         });
-
+        // emit Debug(req, "request sent");
         requestId = s_vrfCoordinator.requestRandomWords(req);
         lastRequestId = requestId;
+        // emit RandomRequested(requestId);
+        
+        return lastRequestId;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -75,6 +79,10 @@ contract VRFDirectFunding is VRFConsumerBaseV2Plus {
             "LINK transfer failed"
         );
     }
+
+    function approveLink(uint256 amount) external {
+    LINK_TOKEN.approve(COORDINATOR, amount);
+}
 
     function linkBalance() external view returns (uint256) {
         return LINK_TOKEN.balanceOf(address(this));
