@@ -2,7 +2,7 @@
 cache/
 out/
 lib/
-broadcast/
+broadcast/Deploy.s.sol/*
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*/31337/
