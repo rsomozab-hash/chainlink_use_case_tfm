@@ -28,6 +28,26 @@ contract DirectFundingConsumer is VRFV2PlusWrapperConsumerBase, ConfirmedOwner {
     mapping(uint256 => RequestStatus) public s_requests;
     uint256[] public requestIds;
     uint256 public lastRequestId;
+    mapping(address => bool) private _authorized;
+
+    // Modificador que permite al owner o a un trusted caller
+    modifier onlyOwnerOrAuthorized() {
+        require(msg.sender == owner() || _authorized[msg.sender], "Not allowed");
+        _;
+    }
+
+    // Funciones de administración de trusted callers
+    function addAuthorized(address _addr) external onlyOwner {
+        _authorized[_addr] = true;
+    }
+
+    function removeAuthorized(address _addr) external onlyOwner {
+        _authorized[_addr] = false;
+    }
+
+    function isAuthorized(address _addr) external view returns (bool) {
+        return _authorized[_addr];
+    }
 
     // === Configurable parameters (defaults for Sepolia from docs) ===
     uint32 public callbackGasLimit = 100_000;    // ajusta según tu callback
@@ -49,7 +69,7 @@ contract DirectFundingConsumer is VRFV2PlusWrapperConsumerBase, ConfirmedOwner {
      * @param enableNativePayment If true, the wrapper will be paid in native token (ETH); otherwise pays in LINK.
      * @return requestId the request identifier
      */
-    function requestRandomWords(bool enableNativePayment) external onlyOwner returns (uint256 requestId) {
+    function requestRandomWords(bool enableNativePayment) external onlyOwnerOrAuthorized returns (uint256 requestId) {
         bytes memory extraArgs = VRFV2PlusClient._argsToBytes(
             VRFV2PlusClient.ExtraArgsV1({ nativePayment: enableNativePayment })
         );

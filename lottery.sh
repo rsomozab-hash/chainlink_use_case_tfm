@@ -4,6 +4,9 @@ source .env
 BALANCE=$(cast call $SEPOLIA_LINK_TOKEN \
     "balanceOf(address)(uint256)" $DIRECT_FUNDING_CONTRACT \
     --rpc-url $RPC_URL | awk '{print $1}')
+##We authorize the lottery contract to access the 
+cast send $DIRECT_FUNDING_CONTRACT "addAuthorized(address)" $LOTTERY_CONTRACT --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+
 ##We check that there is enough link
 if [ "$BALANCE" -lt 100000000000000000 ]; then
     cast send $SEPOLIA_LINK_TOKEN \
@@ -27,9 +30,13 @@ cast send $LOTTERY_CONTRACT \
     --private-key $PRIVATE_KEY \
     --rpc-url $RPC_URL
 echo "Lottery Started"
+##We call the lottery ID
+LOTTERY_ID=$(cast call $LOTTERY_CONTRACT "currentLotteryId()" --rpc-url $RPC_URL | cast to-dec)
+##We get the last request so as to check its status
+REQUEST_ID=$(cast call $DIRECT_FUNDING_CONTRACT "lastRequestId()" --rpc-url $RPC_URL | cast to-dec)
 
-LOTTERY_ID=$(cast call $LOTTERY_CONTRACT "currentLotteryId()" --rpc-url $RPC_URL)
-
+##We check the status
+FULFILLED_DEC=0
 while [ $FULFILLED_DEC -ne 1 ]; do
     echo "Waiting for VRF to fulfill request..."
     sleep 5
@@ -47,6 +54,10 @@ cast send $LOTTERY_CONTRACT \
     "finalizeLottery()" \
     --private-key $PRIVATE_KEY \
     --rpc-url $RPC_URL
+
+WINNER=$(cast call $LOTTERY_CONTRACT "getWinningNumber(uint256)" $LOTTERY_ID --rpc-url $RPC_URL | cast to-dec)
+
+echo "AND THE WINNER NUMBER IS .... $WINNER!"
 
 cast send $LOTTERY_CONTRACT \
     "claimPrize(uint256)" $LOTTERY_ID \
