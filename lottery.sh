@@ -1,26 +1,42 @@
 #!/bin/bash
 source .env
-
+##THESE ARE THE VARIABLES THAT SHOULD APPEAR IN THE .env file*
+# PRIVATE_KEY=<OWNER PRIVATE KEY>
+# CLIENT_PRIVATE_KEY=<CONTESTANT IN THE LOTTERY PRIVATE KEY>
+# RPC_URL=https://sepolia.infura.io/v3/<ID>
+# SEPOLIA_LINK_TOKEN=0x779877A7B0D9E8603169DdbD7836e478b4624789
+# DIRECT_FUNDING_CONTRACT
+# LOTTERY_CONTRACT
 BALANCE=$(cast call $SEPOLIA_LINK_TOKEN \
     "balanceOf(address)(uint256)" $DIRECT_FUNDING_CONTRACT \
     --rpc-url $RPC_URL | awk '{print $1}')
-##We authorize the lottery contract to access the 
-cast send $DIRECT_FUNDING_CONTRACT "addAuthorized(address)" $LOTTERY_CONTRACT --rpc-url $RPC_URL --private-key $PRIVATE_KEY
 
+echo "Available LINK in $DIRECT_FUNDING_CONTRACT is $BALANCE"
+##We authorize the lottery contract to access the VRF contract
+ISAUTHORIZED=$(cast call $DIRECT_FUNDING_CONTRACT "isAuthorized(address)(bool)" $LOTTERY_CONTRACT 
+                                                --rpc-url $RPC_URL --private-key $PRIVATE_KEY)
+if [ $ISAUTHORIZED != true ]; then 
+    echo "Authorizing..."
+    cast send $DIRECT_FUNDING_CONTRACT "addAuthorized(address)" $LOTTERY_CONTRACT --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+fi
 ##We check that there is enough link
 if [ "$BALANCE" -lt 100000000000000000 ]; then
     cast send $SEPOLIA_LINK_TOKEN \
-            "approve(address,uint256)" $DIRECT_FUNDING_CONTRACT 200000000000000000 \
+            "approve(address,uint256)" $DIRECT_FUNDING_CONTRACT 100000000000000000 \
             --rpc-url $RPC_URL --private-key $PRIVATE_KEY
 
     cast send $DIRECT_FUNDING_CONTRACT\
-            "fundWithLink(uint256)" 200000000000000000 \
+            "fundWithLink(uint256)" 100000000000000000 \
             --rpc-url $RPC_URL --private-key $PRIVATE_KEY
+    echo "Contract is now funded"
 fi
+
+##We order a new lottery in case the current one is finished
+OUTPUT=$(cast send $LOTTERY_CONTRACT "nextLottery()" --rpc-url $RPC_URL --private-key $PRIVATE_KEY)
 # Precio del ticket (0.01 ETH)
 cast send $LOTTERY_CONTRACT \
     "buyTicket(uint256)" 1234 \
-    --value 10000000000000000 \  
+    --value 10000000000000000 \
     --private-key $CLIENT_PRIVATE_KEY \
     --rpc-url $RPC_URL
 echo "Ticket bought, good luck!"
@@ -39,7 +55,7 @@ REQUEST_ID=$(cast call $DIRECT_FUNDING_CONTRACT "lastRequestId()" --rpc-url $RPC
 FULFILLED_DEC=0
 while [ $FULFILLED_DEC -ne 1 ]; do
     echo "Waiting for VRF to fulfill request..."
-    sleep 5
+    sleep 10
     STATUS=$(cast call $DIRECT_FUNDING_CONTRACT "getRequestStatus(uint256)" $REQUEST_ID --rpc-url $RPC_URL)
     HEX=$(echo "$STATUS" | sed 's/^0x//')
 
@@ -57,9 +73,15 @@ cast send $LOTTERY_CONTRACT \
 
 WINNER=$(cast call $LOTTERY_CONTRACT "getWinningNumber(uint256)" $LOTTERY_ID --rpc-url $RPC_URL | cast to-dec)
 
-echo "AND THE WINNER NUMBER IS .... $WINNER!"
+echo "AND THE WINNING NUMBER IS .... $WINNER!"
 
-cast send $LOTTERY_CONTRACT \
+RESULT=$(cast send $LOTTERY_CONTRACT \
     "claimPrize(uint256)" $LOTTERY_ID \
     --private-key $CLIENT_PRIVATE_KEY \
-    --rpc-url $RPC_URL
+    --rpc-url $RPC_URL)
+
+if [$(echo "$RESULT" | grep "status" | awk '{print $2}') -eq 1]; then 
+    echo "Congratulations: You have won!!!!!"
+else
+    echo "Sorry, try again"
+fi

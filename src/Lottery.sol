@@ -10,7 +10,7 @@ contract LotteryVRF is ConfirmedOwner {
 
     uint256 public currentLotteryId;
     uint256 public ticketPrice = 0.01 ether; // Precio por ticket
-
+    event LotteryStarted(uint256 id, address by, address vrf);
     struct Lottery {
         uint256 id;
         bool finished;
@@ -47,10 +47,12 @@ contract LotteryVRF is ConfirmedOwner {
 
     /// Inicia la lotería solicitando un número aleatorio a VRF
     function startLottery() external onlyOwner {
+        emit LotteryStarted(currentLotteryId, msg.sender, address(vrf));
         Lottery storage l = lotteries[currentLotteryId];
         require(!l.finished, "Lottery already finished");
         uint256 requestId = vrf.requestRandomWords(false);
         l.vrfRequestId = requestId;
+        
     }
 
     /// Finaliza la lotería y obtiene el número ganador

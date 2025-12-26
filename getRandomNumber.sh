@@ -33,7 +33,7 @@ REQUEST_ID=$(cast call $DIRECT_FUNDING_CONTRACT "lastRequestId()" --rpc-url $RPC
 FULFILLED_DEC=0
 while [ $FULFILLED_DEC -ne 1 ]; do
     echo "Waiting for VRF to fulfill request..."
-    sleep 5
+    sleep 10
     STATUS=$(cast call $DIRECT_FUNDING_CONTRACT "getRequestStatus(uint256)" $REQUEST_ID --rpc-url $RPC_URL)
     HEX=$(echo "$STATUS" | sed 's/^0x//')
 
